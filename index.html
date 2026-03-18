@@ -71,9 +71,9 @@
   /* ── Layout Grid ── */
   .dashboard {
     display: grid;
-    grid-template-columns: 340px 280px 1fr;
+    grid-template-columns: 400px 280px 1fr;
     gap: 16px;
-    max-width: 1280px;
+    max-width: 1360px;
     margin: 0 auto;
   }
 
@@ -192,7 +192,7 @@
     font-family: 'Times New Roman', Times, serif;
     font-size: 0.8rem;
     text-align: center;
-    width: 90px;
+    width: 105px;
     padding: 2px 4px;
     outline: none;
     transition: border-color 0.2s;
@@ -499,15 +499,9 @@
   <div class="mid-stack">
     <div class="card">
       <div class="card-title">Key Levels for Today</div>
-      <table class="data-table">
+      <table class="data-table" id="keyLevelsTable">
         <tr class="col-headers"><td>Level Type</td><td style="text-align:center">Price</td></tr>
-        <tr class="data-row"><td><span class="has-tip">Top of Gap<span class="tip-box">Guidelines to follow on any day that the futures open outside of the prior days RTH range. 1. Go with all gaps that do not fill right away. 2. Larger gaps can often fail to fill on the first day or may fill only partially. 3. If the gap fills and value cannot get to at least overlapping, then the odds of a late day rally (on a gap up) or late day selloff (on a gap down) increase. 4. Gaps of larger than $20 in the /ES are difficult to trade and should be avoided early in the day.<span class="tip-term">Top of Gap</span></span></span></td><td class="val"><input class="cell-input wide" placeholder="—"></td></tr>
-        <tr class="data-row"><td><span class="has-tip">Bottom of Gap<span class="tip-box">Guidelines to follow on any day that the futures open outside of the prior days RTH range. 1. Go with all gaps that do not fill right away. 2. Larger gaps can often fail to fill on the first day or may fill only partially. 3. If the gap fills and value cannot get to at least overlapping, then the odds of a late day rally (on a gap up) or late day selloff (on a gap down) increase. 4. Gaps of larger than $20 in the /ES are difficult to trade and should be avoided early in the day.<span class="tip-term">Bottom of Gap</span></span></span></td><td class="val"><input class="cell-input wide" placeholder="—"></td></tr>
-        <tr class="data-row"><td><span class="has-tip">RTH High<span class="tip-box">Regular Trading Hours. In the /ES this means the price action from 9:30am EST to 4:15pm EST only.<span class="tip-term">RTH High</span></span></span></td><td class="val"><input class="cell-input wide" placeholder="—"></td></tr>
-        <tr class="data-row"><td><span class="has-tip">Bottom of Single Prints<span class="tip-box">Any section of the market profile distribution that is only one TPO wide. Single prints are a sign of emotional buying or selling as very little time was spent at those levels and thus there is no value there. The endpoints of single print sections are considered to be potential support or resistance points.<span class="tip-term">Bottom of Single Prints</span></span></span></td><td class="val"><input class="cell-input wide" placeholder="—"></td></tr>
-        <tr class="data-row"><td><span class="has-tip">POC<span class="tip-box">Point of Control, also known as the fairest price to do business. It is the price level in the /ES where the greatest amount of volume in the prior RTH session traded.<span class="tip-term">POC</span></span></span></td><td class="val"><input class="cell-input wide" placeholder="—"></td></tr>
-        <tr class="data-row"><td><span class="has-tip">RTH Low / Poor Low<span class="tip-box">A poor low is one which lacks excess and is the opposite of an excess low. A poor low will have less than two TPOs of excess at the bottom of a daily range with at least 2-3 columns of TPOs lining up to form a flat looking bottom. It indicates that there are short term or weak handed shorts at that low of day area.<span class="tip-term">RTH Low / Poor Low</span></span></span></td><td class="val"><input class="cell-input wide" placeholder="—"></td></tr>
-        <tr class="data-row"><td><span class="has-tip">ONL<span class="tip-box">Overnight Low. A term mostly used for the futures market. To be precise, in the /ES this would be the lowest price between 4:30pm EST and 9:30am EST the next day.<span class="tip-term">ONL</span></span></span></td><td class="val"><input class="cell-input wide" placeholder="—"></td></tr>
+        <!-- Rows populated dynamically from data.json key_levels array -->
       </table>
     </div>
 
@@ -582,14 +576,13 @@ async function loadData() {
     if (!res.ok) return;
     const data = await res.json();
 
-    // Fill Market Profile & Pivots
+    // Fill Market Profile & Pivots (static inputs)
     const allInputs = document.querySelectorAll('.cell-input');
     const inputMap = [
       'vah_es','vah_nq','poc_es','poc_nq','val_es','val_nq',
       'r3_es','r3_nq','r2_es','r2_nq','r1_es','r1_nq',
       'pivot_es','pivot_nq',
       's1_es','s1_nq','s2_es','s2_nq','s3_es','s3_nq',
-      'gap_top','gap_bottom','rth_high','single_prints','poc_level','rth_low','onl',
       'vpoc1_price','vpoc1_date','vpoc2_price','vpoc2_date','vpoc3_price','vpoc3_date',
       'pm_balance','pm_inventory','pm_range','pm_shock','pm_early','pm_bias'
     ];
@@ -597,12 +590,16 @@ async function loadData() {
     inputMap.forEach((key, i) => {
       if (data[key] && allInputs[i]) {
         allInputs[i].value = data[key];
-        // Format currency for price fields
         if (!allInputs[i].classList.contains('text-val') && !isNaN(data[key].replace(/,/g,''))) {
           formatCurrency(allInputs[i]);
         }
       }
     });
+
+    // Fill Key Levels dynamically
+    if (data.key_levels && data.key_levels.length > 0) {
+      buildKeyLevels(data.key_levels);
+    }
 
     // Fill notes
     const textarea = document.querySelector('.notes-area textarea');
@@ -625,7 +622,104 @@ async function loadData() {
   }
 }
 
-loadData();
+// ── Glossary lookup for tooltips ──
+const glossaryCache = {};
+async function loadGlossary() {
+  try {
+    const res = await fetch('glossary_data.json?' + Date.now());
+    if (!res.ok) return;
+    const data = await res.json();
+    Object.assign(glossaryCache, data);
+  } catch(e) {}
+}
+
+function findTooltip(label) {
+  // Try exact match first, then partial matches
+  const lower = label.toLowerCase();
+  for (const [term, def] of Object.entries(glossaryCache)) {
+    if (term.toLowerCase() === lower) return def;
+  }
+  // Partial: check if any glossary term appears in the label
+  for (const [term, def] of Object.entries(glossaryCache)) {
+    if (lower.includes(term.toLowerCase()) && term.length > 2) return def;
+  }
+  return '';
+}
+
+// ── Build Key Levels rows dynamically ──
+function buildKeyLevels(levels) {
+  const table = document.getElementById('keyLevelsTable');
+  // Remove existing data rows (keep header)
+  table.querySelectorAll('.data-row').forEach(r => r.remove());
+
+  levels.forEach((level, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'data-row';
+
+    const tdLabel = document.createElement('td');
+    const tooltip = findTooltip(level.label);
+    if (tooltip) {
+      const span = document.createElement('span');
+      span.className = 'has-tip';
+      span.innerHTML = `${level.label}<span class="tip-box">${tooltip}<span class="tip-term">${level.label}</span></span>`;
+      tdLabel.appendChild(span);
+    } else {
+      tdLabel.textContent = level.label;
+    }
+
+    const tdPrice = document.createElement('td');
+    tdPrice.className = 'val';
+    if (isAdmin) {
+      const input = document.createElement('input');
+      input.className = 'cell-input wide';
+      input.value = level.price || '';
+      input.placeholder = '—';
+      if (level.price && !isNaN(level.price.replace(/,/g,''))) {
+        input.value = level.price;
+        formatCurrency(input);
+      }
+      input.addEventListener('blur', () => formatCurrency(input));
+      input.addEventListener('focus', () => unformatCurrency(input));
+      tdPrice.appendChild(input);
+    } else {
+      const span = document.createElement('span');
+      span.style.cssText = 'color:var(--accent-blue);font-size:0.8rem;';
+      const val = level.price || '—';
+      if (val && !isNaN(val.replace(/,/g,''))) {
+        const num = parseFloat(val.replace(/,/g,''));
+        const parts = val.replace(/,/g,'').split('.');
+        const decimals = parts[1] ? parts[1].length : 0;
+        span.textContent = num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      } else {
+        span.textContent = val;
+      }
+      tdPrice.appendChild(span);
+    }
+
+    tr.appendChild(tdLabel);
+    tr.appendChild(tdPrice);
+    table.appendChild(tr);
+  });
+
+  // Re-attach tooltip positioning for new elements
+  table.querySelectorAll('.has-tip').forEach(tip => {
+    const box = tip.querySelector('.tip-box');
+    if (box) {
+      tip.addEventListener('mouseenter', () => {
+        const rect = tip.getBoundingClientRect();
+        let top = rect.top - box.offsetHeight - 10;
+        let left = rect.left;
+        if (top < 10) top = rect.bottom + 10;
+        if (left + 320 > window.innerWidth) left = window.innerWidth - 330;
+        if (left < 10) left = 10;
+        box.style.top = top + 'px';
+        box.style.left = left + 'px';
+      });
+    }
+  });
+}
+
+loadGlossary().then(() => loadData());
 
 // ── Save data.json (admin only) ──
 function handleSaveData() {
@@ -635,7 +729,6 @@ function handleSaveData() {
     'r3_es','r3_nq','r2_es','r2_nq','r1_es','r1_nq',
     'pivot_es','pivot_nq',
     's1_es','s1_nq','s2_es','s2_nq','s3_es','s3_nq',
-    'gap_top','gap_bottom','rth_high','single_prints','poc_level','rth_low','onl',
     'vpoc1_price','vpoc1_date','vpoc2_price','vpoc2_date','vpoc3_price','vpoc3_date',
     'pm_balance','pm_inventory','pm_range','pm_shock','pm_early','pm_bias'
   ];
@@ -643,6 +736,16 @@ function handleSaveData() {
   const data = {};
   inputMap.forEach((key, i) => {
     if (allInputs[i]) data[key] = allInputs[i].value;
+  });
+
+  // Collect key_levels from dynamic table
+  const keyLevelsRows = document.querySelectorAll('#keyLevelsTable .data-row');
+  data.key_levels = [];
+  keyLevelsRows.forEach(row => {
+    const label = row.querySelector('td:first-child').textContent.trim();
+    const input = row.querySelector('.cell-input');
+    const price = input ? input.value : '';
+    data.key_levels.push({ price, label });
   });
 
   data.notes = document.querySelector('.notes-area textarea').value || '';
