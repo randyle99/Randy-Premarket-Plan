@@ -1,11 +1,13 @@
 {
-  "date": "Wednesday, March 18, 2026",
+  "date": "Wednesday, March 19, 2026",
+
   "vah_es": "6789.50",
   "vah_nq": "25065.00",
   "poc_es": "6773.50",
   "poc_nq": "25005.00",
   "val_es": "6769.50",
   "val_nq": "24992.00",
+
   "r3_es": "6844.00",
   "r3_nq": "25276.50",
   "r2_es": "6826.25",
@@ -20,48 +22,31 @@
   "s2_nq": "24855.75",
   "s3_es": "6711.25",
   "s3_nq": "24765.00",
-  "vpoc1_price": "6755.75",
-  "vpoc1_date": "03.16",
-  "vpoc2_price": "6830.00",
-  "vpoc2_date": "03.11.26",
-  "vpoc3_price": "6686.25",
-  "vpoc3_date": "03.13.26",
+
+  "key_levels": [
+    {"price": "6814.00", "label": "ONH"},
+    {"price": "6808.50", "label": "RTH High"},
+    {"price": "6803.50", "label": "Bottom of Single Prints"},
+    {"price": "6773.50", "label": "POC"},
+    {"price": "6764.25", "label": "RTH Low"},
+    {"price": "6755.75", "label": "VPOC 03.16"},
+    {"price": "6734.50", "label": "Poor Low 03.16"}
+  ],
+
+  "vpoc1_price": "6830.00",
+  "vpoc1_date": "03.11.26",
+  "vpoc2_price": "6686.25",
+  "vpoc2_date": "03.13.26",
+  "vpoc3_price": "",
+  "vpoc3_date": "",
+
   "pm_balance": "out of balance",
   "pm_inventory": "balanced",
   "pm_range": "lower third",
   "pm_shock": "yes",
   "pm_early": "yes",
   "pm_bias": "neutral",
+
   "notes": "",
-  "chart_image": "",
-  "key_levels": [
-    {
-      "price": "6814.00",
-      "label": "ONH"
-    },
-    {
-      "price": "6808.50",
-      "label": "High RTH"
-    },
-    {
-      "price": "6803.50",
-      "label": "Bottom of Single Prints"
-    },
-    {
-      "price": "6773.50",
-      "label": "POC"
-    },
-    {
-      "price": "6764.25",
-      "label": "Low RTH"
-    },
-    {
-      "price": "6755.75",
-      "label": "VPOC 03.16"
-    },
-    {
-      "price": "6734.50",
-      "label": "Poor Low 03.16"
-    }
-  ]
+  "chart_image": ""
 }
